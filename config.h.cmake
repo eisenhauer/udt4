@@ -1,0 +1,3 @@
+
+#cmakedefine HAS_EPOLL
+

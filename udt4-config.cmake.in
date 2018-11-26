@@ -1,0 +1,14 @@
+include(CMakeFindDependencyMacro)
+
+include(FindPackageHandleStandardArgs)
+set(${CMAKE_FIND_PACKAGE_NAME}_CONFIG ${CMAKE_CURRENT_LIST_FILE})
+find_package_handle_standard_args(${CMAKE_FIND_PACKAGE_NAME} CONFIG_MODE)
+
+if(NOT TARGET udt4::udt4)
+  include("${CMAKE_CURRENT_LIST_DIR}/udt4-targets.cmake")
+endif()
+
+set(UDT4_LIBRARIES udt4::udt4)
+set(UDT4_INCLUDE_DIRS
+  $<TARGET_PROPERTY:udt4::udt4,INTERFACE_INCLUDE_DIRECTORIES>
+)
