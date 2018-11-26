@@ -572,6 +572,11 @@ int CUDTUnited::bind(UDTSOCKET u, UDPSOCKET udpsock)
    return 0;
 }
 
+// int CUDTUnited::getFD(const UDTSOCKET u)
+// {
+//   return s->m_pUDT->m_pSndQueue->m_pChannel->getUdpSocket();
+// }
+
 int CUDTUnited::listen(const UDTSOCKET u, int backlog)
 {
    CUDTSocket* s = locate(u);
@@ -1085,6 +1090,25 @@ int CUDTUnited::selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfd
 int CUDTUnited::epoll_create()
 {
    return m_EPoll.create();
+}
+
+int CUDTUnited::epoll_getfd(const int eid)
+{
+   return m_EPoll.getFD(eid);
+}
+
+int CUDTUnited::usock_getfd(const UDTSOCKET u)
+{
+   CUDTSocket* s = locate(u);
+   const int mid = s->m_iMuxID;
+   map<int, CMultiplexer>::iterator m;
+   m = m_mMultiplexer.find(mid);
+   if (m == m_mMultiplexer.end())
+   {
+      //something is wrong!!!
+      return -1;
+   }
+   return m->second.m_pChannel->getUdpSocket();
 }
 
 int CUDTUnited::epoll_add_usock(const int eid, const UDTSOCKET u, const int* events)
@@ -2012,6 +2036,42 @@ int CUDT::epoll_add_usock(const int eid, const UDTSOCKET u, const int* events)
    }
 }
 
+int CUDT::epoll_getfd(const int eid)
+{
+   try
+   {
+      return s_UDTUnited.epoll_getfd(eid);
+   }
+   catch (CUDTException e)
+   {
+      s_UDTUnited.setError(new CUDTException(e));
+      return ERROR;
+   }
+   catch (...)
+   {
+      s_UDTUnited.setError(new CUDTException(-1, 0, 0));
+      return ERROR;
+   }
+}
+
+int CUDT::usock_getfd(const UDTSOCKET u)
+{
+   try
+   {
+      return s_UDTUnited.usock_getfd(u);
+   }
+   catch (CUDTException e)
+   {
+      s_UDTUnited.setError(new CUDTException(e));
+      return ERROR;
+   }
+   catch (...)
+   {
+      s_UDTUnited.setError(new CUDTException(-1, 0, 0));
+      return ERROR;
+   }
+}
+
 int CUDT::epoll_add_ssock(const int eid, const SYSSOCKET s, const int* events)
 {
    try
@@ -2282,6 +2342,16 @@ int selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfds, vector<UD
 int epoll_create()
 {
    return CUDT::epoll_create();
+}
+
+int epoll_getfd(int eid)
+{
+   return CUDT::epoll_getfd(eid);
+}
+
+int usock_getfd(UDTSOCKET u)
+{
+   return CUDT::usock_getfd(u);
 }
 
 int epoll_add_usock(int eid, UDTSOCKET u, const int* events)
