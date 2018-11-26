@@ -38,10 +38,12 @@ written by
    Yunhong Gu, last updated 01/01/2011
 *****************************************************************************/
 
-#ifdef LINUX
+#include "config.h"
+#ifdef HAS_EPOLL
    #include <sys/epoll.h>
    #include <unistd.h>
 #endif
+#include <iostream>
 #include <algorithm>
 #include <cerrno>
 #include <cstring>
@@ -70,7 +72,7 @@ int CEPoll::create()
 
    int localid = 0;
 
-   #ifdef LINUX
+   #ifdef HAS_EPOLL
    localid = epoll_create(1024);
    if (localid < 0)
       throw CUDTException(-1, 0, errno);
@@ -89,6 +91,16 @@ int CEPoll::create()
    m_mPolls[desc.m_iID] = desc;
 
    return desc.m_iID;
+}
+
+int CEPoll::getFD(const int eid)
+{
+   CGuard pg(m_EPollLock);
+   map<int, CEPollDesc>::iterator p = m_mPolls.find(eid);
+   if (p == m_mPolls.end())
+      throw CUDTException(5, 13);
+
+   return p->second.m_iLocalID;
 }
 
 int CEPoll::add_usock(const int eid, const UDTSOCKET& u, const int* events)
@@ -115,7 +127,7 @@ int CEPoll::add_ssock(const int eid, const SYSSOCKET& s, const int* events)
    if (p == m_mPolls.end())
       throw CUDTException(5, 13);
 
-#ifdef LINUX
+#ifdef HAS_EPOLL
    epoll_event ev;
    memset(&ev, 0, sizeof(epoll_event));
 
@@ -133,6 +145,7 @@ int CEPoll::add_ssock(const int eid, const SYSSOCKET& s, const int* events)
    }
 
    ev.data.fd = s;
+
    if (::epoll_ctl(p->second.m_iLocalID, EPOLL_CTL_ADD, s, &ev) < 0)
       throw CUDTException();
 #endif
@@ -165,7 +178,7 @@ int CEPoll::remove_ssock(const int eid, const SYSSOCKET& s)
    if (p == m_mPolls.end())
       throw CUDTException(5, 13);
 
-#ifdef LINUX
+#ifdef HAS_EPOLL
    epoll_event ev;  // ev is ignored, for compatibility with old Linux kernel only.
    if (::epoll_ctl(p->second.m_iLocalID, EPOLL_CTL_DEL, s, &ev) < 0)
       throw CUDTException();
@@ -227,9 +240,10 @@ int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefd
 
       if (lrfds || lwfds)
       {
-         #ifdef LINUX
+         #ifdef HAS_EPOLL
          const int max_events = p->second.m_sLocals.size();
          epoll_event ev[max_events];
+
          int nfds = ::epoll_wait(p->second.m_iLocalID, ev, max_events, 0);
 
          for (int i = 0; i < nfds; ++ i)
@@ -308,7 +322,7 @@ int CEPoll::release(const int eid)
    if (i == m_mPolls.end())
       throw CUDTException(5, 13);
 
-   #ifdef LINUX
+   #ifdef HAS_EPOLL
    // release local/system epoll descriptor
    ::close(i->second.m_iLocalID);
    #endif
