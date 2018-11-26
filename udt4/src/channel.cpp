@@ -55,6 +55,7 @@ written by
 #endif
 #include "channel.h"
 #include "packet.h"
+#include <iostream>
 
 #ifdef WIN32
    #define socklen_t int
@@ -136,6 +137,11 @@ void CChannel::open(UDPSOCKET udpsock)
 {
    m_iSocket = udpsock;
    setUDPSockOpt();
+}
+
+UDPSOCKET CChannel::getUdpSocket()
+{
+  return m_iSocket;
 }
 
 void CChannel::setUDPSockOpt()

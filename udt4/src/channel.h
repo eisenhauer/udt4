@@ -72,6 +72,14 @@ public:
    void open(UDPSOCKET udpsock);
 
       // Functionality:
+      //    Return the UDP socket in use by a UDP channel.
+      // Parameters:
+      // Returned value:
+      //    UDP socket descriptor.
+
+   UDPSOCKET getUdpSocket();
+
+      // Functionality:
       //    Disconnect and close the UDP entity.
       // Parameters:
       //    None.
